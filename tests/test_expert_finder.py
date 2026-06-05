@@ -48,6 +48,17 @@ def test_hallucination_flagged_when_expert_not_in_retrieved():
     assert out.hallucinated is True
 
 
+def test_regression_variant_drops_evidence_instruction_from_prompt():
+    llm = FakeLLM([json.dumps({"expert_id": "W1", "expert_name": "Jane Li",
+                               "abstain": False, "reasoning": "x"})])
+    finder = ExpertFinder(corpus=CORPUS, embedder=HashingEmbedder(dim=256), llm=llm,
+                          top_k=2, prompt_variant="regression")
+    finder.run("Who works on solid-state battery electrolytes?")
+    prompt = llm.prompts[0]
+    assert "cite concrete evidence" not in prompt.lower()
+    assert "if no candidate is a strong match, abstain" not in prompt.lower()
+
+
 def test_no_hallucination_for_normal_in_set_match():
     llm = FakeLLM([json.dumps({"expert_id": "W1", "expert_name": "Jane Li",
                                "abstain": False, "reasoning": "garnet electrolyte"})])

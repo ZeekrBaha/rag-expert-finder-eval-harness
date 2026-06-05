@@ -17,11 +17,15 @@ def test_oracle_correct_logic():
     assert oracle_correct("abstain", set(), "W1", False) is False          # should abstain
 
 
-def _result(kind, cids, eid, abstain, success):
+def _result(kind, cids, eid, abstain, success,
+            provider="gpt-4o-mini", cost=0.001, latency_ms=1200):
     return {
         "vars": {"kind": kind, "correct_ids": cids},
         "response": {"output": json.dumps({"expert_id": eid, "abstain": abstain})},
         "success": success,
+        "provider": {"label": provider},
+        "cost": cost,
+        "latencyMs": latency_ms,
     }
 
 
@@ -41,3 +45,14 @@ def test_analyze_computes_kappa_and_precision():
     assert rep["confident_match"]["commits"] == 3
     assert abs(rep["confident_match"]["precision"] - 1 / 3) < 1e-9
     assert rep["confident_match"]["wrong_confident_matches"] == 2
+    # per-provider breakdown: all 4 fake results share the gpt-4o-mini label
+    bp = rep["by_provider"]["gpt-4o-mini"]
+    assert bp["total"] == 4
+    assert bp["passed"] == 2
+    assert abs(bp["pass_rate"] - 0.5) < 1e-9
+    # 3 commits, 1 correct -> precision 1/3
+    assert bp["commits"] == 3
+    assert bp["correct_commits"] == 1
+    assert abs(bp["precision"] - 1 / 3) < 1e-9
+    assert abs(bp["avg_cost"] - 0.001) < 1e-9
+    assert abs(bp["avg_latency_ms"] - 1200) < 1e-9

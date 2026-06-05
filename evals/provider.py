@@ -11,9 +11,10 @@ _CORPUS_PATH = Path(__file__).resolve().parent.parent / "data/corpus.jsonl"
 _FINDERS = {}
 
 
-def _get_finder(model_provider: str):
-    if model_provider in _FINDERS:
-        return _FINDERS[model_provider]
+def _get_finder(model_provider: str, variant: str = "good"):
+    key = (model_provider, variant)
+    if key in _FINDERS:
+        return _FINDERS[key]
     from app.config import Settings
     from app.corpus import load_jsonl
     from app.embedder import OpenAIEmbedder, HashingEmbedder
@@ -33,15 +34,17 @@ def _get_finder(model_provider: str):
         "anthropic": lambda: AnthropicChat(s.anthropic_api_key, s.candidate_anthropic),
         "deepseek": lambda: DeepSeekChat(s.deepseek_api_key, s.candidate_deepseek),
     }[model_provider]()
-    finder = ExpertFinder(corpus, embedder, llm, top_k=s.top_k)
-    _FINDERS[model_provider] = finder
+    finder = ExpertFinder(corpus, embedder, llm, top_k=s.top_k, prompt_variant=variant)
+    _FINDERS[key] = finder
     return finder
 
 
 def call_api(prompt, options, context):
-    provider = (options or {}).get("config", {}).get("model_provider", "openai")
+    cfg = (options or {}).get("config", {})
+    provider = cfg.get("model_provider", "openai")
+    variant = cfg.get("prompt_variant", "good")
     query = context["vars"]["query"]
-    finder = _get_finder(provider)
+    finder = _get_finder(provider, variant)
     out = finder.run(query)
     r = out.result
     candidates = [{"id": c.id, "name": c.author, "abstract": c.abstract[:200]}

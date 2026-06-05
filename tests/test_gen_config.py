@@ -30,3 +30,19 @@ def test_render_yaml_includes_only_given_providers_and_judge():
     assert "value: |" in y
     assert "Ignore answer length entirely." in y
     assert "file://graders" not in y
+
+
+def test_render_yaml_default_variant_is_good():
+    y = render_yaml([{"label": "gpt-4o-mini", "model_provider": "openai"}],
+                    judge_model="openai:gpt-4o",
+                    rubric_text="PASS only if correct.")
+    assert "prompt_variant: good" in y
+
+
+def test_render_yaml_regression_variant():
+    y = render_yaml([{"label": "gpt-4o-mini", "model_provider": "openai"}],
+                    judge_model="openai:gpt-4o",
+                    rubric_text="PASS only if correct.",
+                    variant="regression")
+    assert "prompt_variant: regression" in y
+    assert "prompt_variant: good" not in y

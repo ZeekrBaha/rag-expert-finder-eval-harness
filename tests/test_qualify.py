@@ -16,6 +16,27 @@ def test_prompt_lists_candidates_and_fences_query():
     assert "untrusted" in p.lower()
 
 
+def test_good_prompt_keeps_evidence_and_abstain_instructions():
+    p = build_qualify_prompt("Who works on solid-state batteries?", CANDS, variant="good")
+    low = p.lower()
+    assert "cite" in low and "evidence" in low
+    assert "abstain" in low
+
+
+def test_regression_prompt_drops_evidence_and_abstain_but_keeps_json():
+    p = build_qualify_prompt("Who works on solid-state batteries?", CANDS,
+                             variant="regression")
+    low = p.lower()
+    # evidence-citation instruction dropped
+    assert "cite concrete evidence" not in low
+    assert "cite specific evidence" not in low
+    # abstain instruction dropped
+    assert "if no candidate is a strong match, abstain" not in low
+    # JSON output format instruction still present (same schema)
+    assert "return only json" in low
+    assert '"expert_id"' in p and '"abstain"' in p
+
+
 def test_parse_valid_match():
     raw = json.dumps({"expert_id": "W1", "expert_name": "Jane Li",
                       "abstain": False, "reasoning": "garnet electrolyte work"})

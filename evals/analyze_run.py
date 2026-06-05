@@ -38,6 +38,8 @@ def analyze(results: list[dict]) -> dict:
     per_kind_pass: dict[str, list[int]] = {}
     oracle, judge = [], []
     committed_true, committed_pred = [], []  # for confident-match precision/recall
+    # per-provider accumulators keyed by provider.label
+    prov: dict[str, dict] = {}
 
     for r in results:
         v = r["vars"]
@@ -62,6 +64,22 @@ def analyze(results: list[dict]) -> dict:
             committed_true.append(oc)       # was the committed match actually correct?
             committed_pred.append(True)     # the model asserted a (confident) match
 
+        # --- per-provider breakdown ---
+        label = r.get("provider", {}).get("label", "unknown")
+        p = prov.setdefault(label, {
+            "passed": 0, "total": 0, "commits": 0, "correct_commits": 0,
+            "cost_sum": 0.0, "latency_sum": 0.0,
+        })
+        p["total"] += 1
+        if jp:
+            p["passed"] += 1
+        if not abstain:
+            p["commits"] += 1
+            if oc:
+                p["correct_commits"] += 1
+        p["cost_sum"] += r.get("cost") or 0
+        p["latency_sum"] += r.get("latencyMs") or 0
+
     n = len(results)
     pct_agree = sum(1 for o, j in zip(oracle, judge) if o == j) / n if n else 0.0
     kappa = cohens_kappa([int(x) for x in oracle], [int(x) for x in judge])
@@ -70,6 +88,21 @@ def analyze(results: list[dict]) -> dict:
     tp = sum(1 for t in committed_true if t)
     commits = len(committed_true)
     match_precision = tp / commits if commits else 0.0
+
+    by_provider = {}
+    for label, p in prov.items():
+        total = p["total"]
+        c = p["commits"]
+        by_provider[label] = {
+            "passed": p["passed"],
+            "total": total,
+            "pass_rate": p["passed"] / total if total else 0.0,
+            "commits": c,
+            "correct_commits": p["correct_commits"],
+            "precision": p["correct_commits"] / c if c else 0.0,
+            "avg_cost": p["cost_sum"] / total if total else 0.0,
+            "avg_latency_ms": p["latency_sum"] / total if total else 0.0,
+        }
 
     return {
         "n": n,
@@ -86,6 +119,7 @@ def analyze(results: list[dict]) -> dict:
             "precision": match_precision,
             "wrong_confident_matches": commits - tp,
         },
+        "by_provider": by_provider,
     }
 
 

@@ -1,0 +1,22 @@
+# Verify provider/assertion syntax vs current Promptfoo docs before live runs.
+description: RAG expert-finder eval — qualify the right PI, catch confident-wrong matches.
+
+providers:
+  - id: file://provider.py
+    label: claude
+    config: { model_provider: anthropic }
+  - id: file://provider.py
+    label: gpt-4o-mini
+    config: { model_provider: openai }
+  - id: file://provider.py
+    label: deepseek
+    config: { model_provider: deepseek }
+
+defaultTest:
+  assert:
+    - type: llm-rubric
+      # Judge is OUTSIDE the candidate set (no self-preference); pinned for drift.
+      provider: openai:gpt-4o
+      value: file://graders/judge_rubric.md
+
+tests: file://tests.json

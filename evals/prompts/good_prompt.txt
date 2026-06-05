@@ -1,0 +1,4 @@
+Qualify the single best-matched researcher for the research need in {{query}}.
+Pick the candidate whose own work most directly matches the technical area.
+If no candidate is a strong match, abstain. Cite specific evidence from the
+chosen abstract, not generic praise. Return concise JSON.

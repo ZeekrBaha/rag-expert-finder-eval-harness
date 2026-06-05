@@ -15,7 +15,12 @@ providers:
 defaultTest:
   assert:
     - type: llm-rubric
-      # Judge is OUTSIDE the candidate set (no self-preference); pinned for drift.
+      # Judge is a different model from every candidate, but it shares vendor/family
+      # with the gpt-4o-mini candidate (both GPT-4o). With only 3 vendor candidates
+      # (anthropic, openai, deepseek) a fully out-of-family judge isn't available,
+      # so residual family affinity is acknowledged and quantified via the bias probe
+      # (evals/meta/bias_probe.py). Pinned for drift. JUDGE_MODEL is configurable to
+      # point at a 4th-family judge if one is added.
       provider: openai:gpt-4o
       value: file://graders/judge_rubric.md
 

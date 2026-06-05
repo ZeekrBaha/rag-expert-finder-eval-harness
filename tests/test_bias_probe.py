@@ -1,4 +1,4 @@
-from evals.meta.bias_probe import pad_text, flip_rate
+from evals.meta.bias_probe import pad_text, flip_rate, swap_positions
 
 
 def test_pad_text_adds_filler_but_keeps_core():
@@ -21,3 +21,15 @@ def test_flip_rate_length_mismatch_raises():
     import pytest
     with pytest.raises(ValueError):
         flip_rate([True], [True, False])
+
+
+def test_swap_positions_swaps_first_two():
+    assert swap_positions(["a", "b", "c"]) == ["b", "a", "c"]
+
+
+def test_swap_positions_single_element_unchanged():
+    assert swap_positions(["a"]) == ["a"]
+
+
+def test_swap_positions_empty_unchanged():
+    assert swap_positions([]) == []

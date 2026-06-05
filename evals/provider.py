@@ -1,17 +1,19 @@
 """Promptfoo python provider. Promptfoo calls call_api(prompt, options, context)
 per test case; we ignore `prompt` and run the ExpertFinder for context.vars.query.
-Build the embedded corpus once per process.
+Build one finder per model_provider once per process.
 """
 import json
-import os
+import sys
+from pathlib import Path
 
-_FINDER = None
+_CORPUS_PATH = Path(__file__).resolve().parent.parent / "data/corpus.jsonl"
+
+_FINDERS = {}
 
 
 def _get_finder(model_provider: str):
-    global _FINDER
-    if _FINDER is not None:
-        return _FINDER
+    if model_provider in _FINDERS:
+        return _FINDERS[model_provider]
     from app.config import Settings
     from app.corpus import load_jsonl
     from app.embedder import OpenAIEmbedder, HashingEmbedder
@@ -19,16 +21,21 @@ def _get_finder(model_provider: str):
     from app.llm_client import OpenAIChat, AnthropicChat, DeepSeekChat
 
     s = Settings.from_env()
-    corpus = load_jsonl("data/corpus.jsonl")
-    embedder = (OpenAIEmbedder(s.openai_api_key, s.embed_model)
-                if s.openai_api_key else HashingEmbedder())
+    corpus = load_jsonl(_CORPUS_PATH)
+    if s.openai_api_key:
+        embedder = OpenAIEmbedder(s.openai_api_key, s.embed_model)
+    else:
+        print("WARNING: no OPENAI_API_KEY — using HashingEmbedder; "
+              "retrieval is degraded", file=sys.stderr)
+        embedder = HashingEmbedder()
     llm = {
         "openai": lambda: OpenAIChat(s.openai_api_key, s.candidate_openai),
         "anthropic": lambda: AnthropicChat(s.anthropic_api_key, s.candidate_anthropic),
         "deepseek": lambda: DeepSeekChat(s.deepseek_api_key, s.candidate_deepseek),
     }[model_provider]()
-    _FINDER = ExpertFinder(corpus, embedder, llm, top_k=s.top_k)
-    return _FINDER
+    finder = ExpertFinder(corpus, embedder, llm, top_k=s.top_k)
+    _FINDERS[model_provider] = finder
+    return finder
 
 
 def call_api(prompt, options, context):
@@ -37,8 +44,12 @@ def call_api(prompt, options, context):
     finder = _get_finder(provider)
     out = finder.run(query)
     r = out.result
+    candidates = [{"id": c.id, "name": c.author, "abstract": c.abstract[:200]}
+                  for c in out.candidates]
     return {"output": json.dumps({
         "expert_id": r.expert_id, "expert_name": r.expert_name,
         "abstain": r.abstain, "reasoning": r.reasoning,
         "retrieved_ids": out.retrieved_ids,
+        "hallucinated": out.hallucinated,
+        "candidates": candidates,
     })}

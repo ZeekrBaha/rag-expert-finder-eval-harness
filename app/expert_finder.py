@@ -9,6 +9,7 @@ class FinderOutput:
     retrieved_ids: list[str]
     candidates: list[Record]
     result: QualifyResult
+    hallucinated: bool
 
 
 class ExpertFinder:
@@ -31,4 +32,5 @@ class ExpertFinder:
         prompt = build_qualify_prompt(query, candidates)
         raw = self._llm.complete(prompt)
         result = parse_qualify_output(raw)
-        return FinderOutput(retrieved_ids, candidates, result)
+        hallucinated = (not result.abstain) and (result.expert_id not in retrieved_ids)
+        return FinderOutput(retrieved_ids, candidates, result, hallucinated)

@@ -1,8 +1,10 @@
 """Bias probe: quantify judge sensitivity to verbosity and candidate position.
 
-pad_text() and flip_rate() are pure + tested. A live harness (run later) feeds
-the judge baseline vs. perturbed answers and reports flip_rate — a measured number,
-not a claim. Evidence: style/verbosity bias dominates; position bias is small.
+pad_text() perturbs verbosity, swap_positions() perturbs candidate order, and
+flip_rate() scores how often verdicts change under a perturbation. All three are
+pure + tested. A live harness (run later) feeds the judge baseline vs. perturbed
+answers and reports flip_rate — a measured number, not a claim. Expected evidence:
+style/verbosity bias dominates; position bias (swap_positions) is small.
 """
 
 _FILLER = (" To elaborate further on this point in considerable additional detail, "
@@ -15,6 +17,18 @@ def pad_text(text: str, factor: int = 3) -> str:
     Used to test verbosity bias: a good judge scores padded == concise.
     """
     return text + (_FILLER * max(0, factor))
+
+
+def swap_positions(items: list) -> list:
+    """Return a copy of `items` with the first two elements swapped.
+
+    Used to perturb candidate order for the position-bias flip-rate. Lists with
+    fewer than two elements are returned unchanged (as a copy).
+    """
+    out = list(items)
+    if len(out) >= 2:
+        out[0], out[1] = out[1], out[0]
+    return out
 
 
 def flip_rate(baseline: list[bool], variant: list[bool]) -> float:

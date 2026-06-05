@@ -1,0 +1,1 @@
+Qualify the best researcher for {{query}}. Just pick whoever seems most relevant.

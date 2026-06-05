@@ -1,0 +1,34 @@
+{
+  "n": 22,
+  "overall_pass": 0.5454545454545454,
+  "per_kind": {
+    "positive": {
+      "passed": 8,
+      "total": 12
+    },
+    "hard_negative": {
+      "passed": 0,
+      "total": 6
+    },
+    "abstain": {
+      "passed": 4,
+      "total": 4
+    }
+  },
+  "judge_vs_oracle": {
+    "kappa": 1.0,
+    "pct_agreement": 1.0,
+    "confusion": {
+      "tp": 12,
+      "fn": 0,
+      "tn": 10,
+      "fp": 0
+    }
+  },
+  "confident_match": {
+    "commits": 18,
+    "correct_commits": 8,
+    "precision": 0.4444444444444444,
+    "wrong_confident_matches": 10
+  }
+}

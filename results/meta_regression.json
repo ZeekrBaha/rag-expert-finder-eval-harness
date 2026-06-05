@@ -1,0 +1,56 @@
+{
+  "n": 44,
+  "overall_pass": 0.5,
+  "per_kind": {
+    "positive": {
+      "passed": 14,
+      "total": 24
+    },
+    "hard_negative": {
+      "passed": 0,
+      "total": 12
+    },
+    "abstain": {
+      "passed": 8,
+      "total": 8
+    }
+  },
+  "judge_vs_oracle": {
+    "kappa": 0.9090909090909092,
+    "pct_agreement": 0.9545454545454546,
+    "confusion": {
+      "tp": 22,
+      "fn": 2,
+      "tn": 20,
+      "fp": 0
+    }
+  },
+  "confident_match": {
+    "commits": 36,
+    "correct_commits": 16,
+    "precision": 0.4444444444444444,
+    "wrong_confident_matches": 20
+  },
+  "by_provider": {
+    "deepseek": {
+      "passed": 10,
+      "total": 22,
+      "pass_rate": 0.45454545454545453,
+      "commits": 18,
+      "correct_commits": 8,
+      "precision": 0.4444444444444444,
+      "avg_cost": 0.0,
+      "avg_latency_ms": 2580.2727272727275
+    },
+    "gpt-4o-mini": {
+      "passed": 12,
+      "total": 22,
+      "pass_rate": 0.5454545454545454,
+      "commits": 18,
+      "correct_commits": 8,
+      "precision": 0.4444444444444444,
+      "avg_cost": 0.0,
+      "avg_latency_ms": 1902.2727272727273
+    }
+  }
+}

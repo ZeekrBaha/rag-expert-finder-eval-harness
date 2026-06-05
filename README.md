@@ -66,6 +66,36 @@ qualify logic, the metrics, the κ computation, and the bias flip-rate are all
 unit-tested with **no keys and no network**. Live `promptfoo eval` runs swap in
 the real OpenAI embedder and the real candidate models.
 
+## Data: the corpus & the queries
+
+**Corpus** (`data/corpus.jsonl`, committed): **200 real abstracts** pulled live from
+the [OpenAlex](https://openalex.org) API (free, no key) via `data/fetch_corpus.py`
+(`pyalex`) — **50 each** across 4 deliberately *adjacent* research areas, so a
+"confident wrong match" is a genuine risk:
+
+1. solid-state battery electrolytes
+2. CRISPR lipid-nanoparticle delivery
+3. federated learning / privacy
+4. perovskite solar-cell stability
+
+Each record is `{id, title, abstract, author, institution, concept, h_index}` (e.g.
+institutions KAIST, U. Toronto, Ohio State; concepts Electrolyte, CRISPR, Perovskite,
+Genome editing). The abstract is reconstructed from OpenAlex's inverted index.
+Retrieval embeds `title + abstract` (`text-embedding-3-small`), takes top-k, and the
+LLM qualifies/justifies the best match — or abstains.
+
+**Golden queries** (`data/golden.jsonl`): 22 hand-labeled cases over real corpus ids,
+in three classes that make the suite catch real failures:
+
+| class | n | what it tests | example query |
+|---|---|---|---|
+| `positive` | 12 | a clearly correct PI exists | *"Who works on garnet-type solid-state electrolytes for lithium batteries?"* |
+| `hard_negative` | 6 | an adjacent-field PI is the tempting-but-wrong pick (the confident-wrong match) | *"Find a researcher on lipid-nanoparticle CRISPR delivery to the liver."* |
+| `abstain` | 4 | no expert in the corpus — correct answer is to decline | *"Who is an expert in trapped-ion quantum computing and qubit error correction?"* · *"…medieval European manuscript paleography?"* |
+
+`data/golden.jsonl` is the single source of truth; `evals/build_tests.py` compiles it
+into `evals/tests.json` so the human labels and the eval suite never drift.
+
 ## What it proves
 
 1. **The judge is validated, not assumed.** `evals/meta/judge_agreement.py`

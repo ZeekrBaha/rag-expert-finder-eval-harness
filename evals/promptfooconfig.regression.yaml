@@ -5,10 +5,10 @@ description: RAG expert-finder eval — qualify the right PI, catch confident-wr
 providers:
   - id: file://provider.py
     label: gpt-4o-mini
-    config: { model_provider: openai, prompt_variant: good }
+    config: { model_provider: openai, prompt_variant: regression }
   - id: file://provider.py
     label: deepseek
-    config: { model_provider: deepseek, prompt_variant: good }
+    config: { model_provider: deepseek, prompt_variant: regression }
 
 defaultTest:
   assert:

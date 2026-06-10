@@ -12,7 +12,7 @@ normalize_ids() and oracle_correct() are pure + tested; main() reads the JSON.
 import json
 import sys
 
-from evals.meta.stats import cohens_kappa, confusion_matrix, precision_recall
+from evals.meta.stats import cohens_kappa, confusion_matrix
 
 
 def normalize_ids(raw) -> set[str]:
@@ -34,10 +34,69 @@ def oracle_correct(kind: str, correct_ids: set[str],
     return (not abstain) and (expert_id in correct_ids)
 
 
+def _update_kind_bucket(per_kind_pass: dict[str, list[int]],
+                        kind: str, judge_pass: bool) -> None:
+    """Accumulate [passed, total] for one case into its kind bucket."""
+    bucket = per_kind_pass.setdefault(kind, [0, 0])
+    bucket[1] += 1
+    if judge_pass:
+        bucket[0] += 1
+
+
+def _update_provider_stats(prov: dict[str, dict], r: dict, judge_pass: bool,
+                           abstain: bool, oracle_ok: bool) -> None:
+    """Accumulate per-provider counters (pass, commits, cost, latency) for one case."""
+    label = r.get("provider", {}).get("label", "unknown")
+    p = prov.setdefault(label, {
+        "passed": 0, "total": 0, "commits": 0, "correct_commits": 0,
+        "cost_sum": 0.0, "latency_sum": 0.0,
+    })
+    p["total"] += 1
+    if judge_pass:
+        p["passed"] += 1
+    if not abstain:
+        p["commits"] += 1
+        if oracle_ok:
+            p["correct_commits"] += 1
+    p["cost_sum"] += r.get("cost") or 0
+    p["latency_sum"] += r.get("latencyMs") or 0
+
+
+def _summarize_providers(prov: dict[str, dict]) -> dict[str, dict]:
+    """Turn raw per-provider counters into rates and averages."""
+    by_provider = {}
+    for label, p in prov.items():
+        total = p["total"]
+        c = p["commits"]
+        by_provider[label] = {
+            "passed": p["passed"],
+            "total": total,
+            "pass_rate": p["passed"] / total if total else 0.0,
+            "commits": c,
+            "correct_commits": p["correct_commits"],
+            "precision": p["correct_commits"] / c if c else 0.0,
+            "avg_cost": p["cost_sum"] / total if total else 0.0,
+            "avg_latency_ms": p["latency_sum"] / total if total else 0.0,
+        }
+    return by_provider
+
+
+def _confident_match_summary(committed_true: list[bool]) -> dict:
+    """Precision over committed (non-abstain) matches: correct commits / all commits."""
+    tp = sum(1 for t in committed_true if t)
+    commits = len(committed_true)
+    return {
+        "commits": commits,
+        "correct_commits": tp,
+        "precision": tp / commits if commits else 0.0,
+        "wrong_confident_matches": commits - tp,
+    }
+
+
 def analyze(results: list[dict]) -> dict:
     per_kind_pass: dict[str, list[int]] = {}
     oracle, judge = [], []
-    committed_true, committed_pred = [], []  # for confident-match precision/recall
+    committed_true = []  # for confident-match precision
     # per-provider accumulators keyed by provider.label
     prov: dict[str, dict] = {}
 
@@ -54,55 +113,17 @@ def analyze(results: list[dict]) -> dict:
         oracle.append(oc)
         judge.append(jp)
 
-        bucket = per_kind_pass.setdefault(kind, [0, 0])
-        bucket[1] += 1
-        if jp:
-            bucket[0] += 1
+        _update_kind_bucket(per_kind_pass, kind, jp)
 
         # "committed a match" = not abstain. y_true = that match is correct.
         if not abstain:
             committed_true.append(oc)       # was the committed match actually correct?
-            committed_pred.append(True)     # the model asserted a (confident) match
 
-        # --- per-provider breakdown ---
-        label = r.get("provider", {}).get("label", "unknown")
-        p = prov.setdefault(label, {
-            "passed": 0, "total": 0, "commits": 0, "correct_commits": 0,
-            "cost_sum": 0.0, "latency_sum": 0.0,
-        })
-        p["total"] += 1
-        if jp:
-            p["passed"] += 1
-        if not abstain:
-            p["commits"] += 1
-            if oc:
-                p["correct_commits"] += 1
-        p["cost_sum"] += r.get("cost") or 0
-        p["latency_sum"] += r.get("latencyMs") or 0
+        _update_provider_stats(prov, r, jp, abstain, oc)
 
     n = len(results)
     pct_agree = sum(1 for o, j in zip(oracle, judge) if o == j) / n if n else 0.0
     kappa = cohens_kappa([int(x) for x in oracle], [int(x) for x in judge])
-
-    # Confident-match precision = correct commits / all commits; recall over positives.
-    tp = sum(1 for t in committed_true if t)
-    commits = len(committed_true)
-    match_precision = tp / commits if commits else 0.0
-
-    by_provider = {}
-    for label, p in prov.items():
-        total = p["total"]
-        c = p["commits"]
-        by_provider[label] = {
-            "passed": p["passed"],
-            "total": total,
-            "pass_rate": p["passed"] / total if total else 0.0,
-            "commits": c,
-            "correct_commits": p["correct_commits"],
-            "precision": p["correct_commits"] / c if c else 0.0,
-            "avg_cost": p["cost_sum"] / total if total else 0.0,
-            "avg_latency_ms": p["latency_sum"] / total if total else 0.0,
-        }
 
     return {
         "n": n,
@@ -113,13 +134,8 @@ def analyze(results: list[dict]) -> dict:
             "pct_agreement": pct_agree,
             "confusion": confusion_matrix(oracle, judge),
         },
-        "confident_match": {
-            "commits": commits,
-            "correct_commits": tp,
-            "precision": match_precision,
-            "wrong_confident_matches": commits - tp,
-        },
-        "by_provider": by_provider,
+        "confident_match": _confident_match_summary(committed_true),
+        "by_provider": _summarize_providers(prov),
     }
 
 

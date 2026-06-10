@@ -1,0 +1,10 @@
+# Release gates for the expert-finder eval, consumed by the eval-ai-ci-gate
+# reusable CI gate. Metrics come from scorecard.json (evals/scorecard.py).
+schema_version: "1.0"
+hard_gates:
+  - { metric: confident_match_precision, threshold: 0.9, op: ">=" }
+soft_gates:
+  - { metric: pass_rate_positive,      threshold: 0.8, op: ">=" }
+  - { metric: pass_rate_hard_negative, threshold: 0.8, op: ">=" }
+  - { metric: pass_rate_abstain,       threshold: 0.8, op: ">=" }
+  - { metric: judge_kappa,             threshold: 0.8, op: ">=" }

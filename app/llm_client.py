@@ -40,7 +40,8 @@ class AnthropicChat:
         r = self._client.messages.create(
             model=self._model, max_tokens=1024, temperature=0,
             messages=[{"role": "user", "content": prompt}])
-        return r.content[0].text
+        block = r.content[0]
+        return getattr(block, "text", "")
 
 
 class DeepSeekChat:

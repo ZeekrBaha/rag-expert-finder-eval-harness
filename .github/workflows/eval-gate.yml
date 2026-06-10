@@ -1,0 +1,48 @@
+name: eval-gate
+
+# Release gate via the reusable eval-ai-ci-gate composite action. Producing a fresh
+# scorecard requires a live Promptfoo run (API keys), so this workflow is manual-only:
+# run the eval locally, commit/upload the run JSON, then dispatch this workflow to
+# gate the resulting scorecard against eval-gates.yaml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run-json:
+        description: "Path to a Promptfoo run JSON in the repo"
+        required: false
+        default: "results/openai_run.json"
+
+permissions:
+  contents: read
+  pull-requests: write   # lets the gate post/update its sticky PR comment
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync dependencies (locked)
+        run: uv sync --frozen
+
+      - name: Produce scorecard from run JSON (offline, no key)
+        run: uv run python -m evals.scorecard "${{ inputs.run-json }}" scorecard.json
+
+      - name: Eval release gate
+        uses: ZeekrBaha/eval-ai-ci-gate@v1
+        with:
+          scorecard-path: scorecard.json
+          gates-path: eval-gates.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-gate-report
+          path: report.html

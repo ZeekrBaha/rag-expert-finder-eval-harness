@@ -3,7 +3,9 @@ from app.embedder import HashingEmbedder, cosine
 
 
 def test_cosine_basics():
-    a = np.array([1.0, 0.0]); b = np.array([1.0, 0.0]); c = np.array([0.0, 1.0])
+    a = np.array([1.0, 0.0])
+    b = np.array([1.0, 0.0])
+    c = np.array([0.0, 1.0])
     assert cosine(a, b) == 1.0
     assert abs(cosine(a, c)) < 1e-9
 

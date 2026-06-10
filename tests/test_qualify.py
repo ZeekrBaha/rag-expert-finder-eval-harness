@@ -57,6 +57,19 @@ def test_parse_tolerates_fenced_json():
     assert parse_qualify_output(raw).expert_id == "W2"
 
 
+def test_parse_first_object_when_trailing_prose_contains_braces():
+    obj = {"expert_id": "W1", "expert_name": "Jane Li",
+           "abstain": False, "reasoning": "garnet electrolyte work"}
+    raw = (json.dumps(obj)
+           + '\n\nNote: I considered {"expert_id": "W2"} but rejected it '
+             "because {the abstract} did not match.")
+    r = parse_qualify_output(raw)
+    assert r.expert_id == "W1"
+    assert r.expert_name == "Jane Li"
+    assert r.abstain is False
+    assert r.reasoning == "garnet electrolyte work"
+
+
 def test_parse_garbage_raises():
     import pytest
     with pytest.raises(ValueError):

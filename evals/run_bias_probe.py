@@ -55,4 +55,9 @@ def main(path: str = "results/openai_run.json", sample: int = 6,
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main(*sys.argv[1:])
+    _args = sys.argv[1:]
+    main(
+        path=_args[0] if len(_args) > 0 else "results/openai_run.json",
+        sample=int(_args[1]) if len(_args) > 1 else 6,
+        out=_args[2] if len(_args) > 2 else "results/bias_probe.json",
+    )

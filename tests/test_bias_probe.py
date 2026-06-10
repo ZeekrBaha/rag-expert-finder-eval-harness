@@ -8,6 +8,12 @@ def test_pad_text_adds_filler_but_keeps_core():
     assert len(padded) > len(core) * 2
 
 
+def test_pad_text_honors_custom_filler():
+    core = "Jane Li works on garnet solid electrolytes."
+    padded = pad_text(core, factor=2, filler=" бла-бла")
+    assert padded == core + " бла-бла бла-бла"
+
+
 def test_flip_rate_counts_changed_verdicts():
     # baseline vs variant verdicts (True=pass). 1 of 4 flipped.
     assert flip_rate([True, True, False, False], [True, False, False, False]) == 0.25

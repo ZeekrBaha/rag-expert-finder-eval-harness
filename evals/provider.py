@@ -8,7 +8,7 @@ from pathlib import Path
 
 _CORPUS_PATH = Path(__file__).resolve().parent.parent / "data/corpus.jsonl"
 
-_FINDERS = {}
+_FINDERS: dict = {}
 
 
 def _get_finder(model_provider: str, variant: str = "good"):
@@ -17,12 +17,13 @@ def _get_finder(model_provider: str, variant: str = "good"):
         return _FINDERS[key]
     from app.config import Settings
     from app.corpus import load_jsonl
-    from app.embedder import OpenAIEmbedder, HashingEmbedder
+    from app.embedder import Embedder, OpenAIEmbedder, HashingEmbedder
     from app.expert_finder import ExpertFinder
     from app.llm_client import OpenAIChat, AnthropicChat, DeepSeekChat
 
     s = Settings.from_env()
     corpus = load_jsonl(_CORPUS_PATH)
+    embedder: Embedder
     if s.openai_api_key:
         embedder = OpenAIEmbedder(s.openai_api_key, s.embed_model)
     else:

@@ -12,7 +12,7 @@ normalize_ids() and oracle_correct() are pure + tested; main() reads the JSON.
 import json
 import sys
 
-from evals.meta.stats import cohens_kappa, confusion_matrix, precision_recall
+from evals.meta.stats import cohens_kappa, confusion_matrix
 
 
 def normalize_ids(raw) -> set[str]:

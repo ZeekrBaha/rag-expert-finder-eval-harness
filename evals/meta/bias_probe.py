@@ -11,12 +11,14 @@ _FILLER = (" To elaborate further on this point in considerable additional detai
            "it is worth noting comprehensively and at length that")
 
 
-def pad_text(text: str, factor: int = 3) -> str:
+def pad_text(text: str, factor: int = 3, filler: str = _FILLER) -> str:
     """Lengthen an answer with neutral filler WITHOUT changing its substance.
 
     Used to test verbosity bias: a good judge scores padded == concise.
+    `filler` defaults to the English constant; pass a custom string for
+    other languages or styles.
     """
-    return text + (_FILLER * max(0, factor))
+    return text + (filler * max(0, factor))
 
 
 def swap_positions(items: list) -> list:
